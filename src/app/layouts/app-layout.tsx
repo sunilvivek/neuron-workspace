@@ -1,4 +1,4 @@
-import { Outlet, NavLink, Link } from "react-router"
+import { Outlet, NavLink, Link, useNavigate } from "react-router"
 import {
   LayoutDashboard,
   FileText,
@@ -7,6 +7,8 @@ import {
   PanelLeftOpen,
   Menu,
   X,
+  LogOut,
+  User,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -19,8 +21,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState, useEffect } from "react"
+import { useAppDispatch, useAppSelector } from "@/app/store"
+import { logout } from "@/features/auth/store/auth-slice"
 
 const navItems = [
   { to: "/app", icon: LayoutDashboard, label: "Dashboard" },
@@ -61,6 +74,18 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 export function AppLayout() {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const dispatch = useAppDispatch()
+  const navigate = useNavigate()
+  const { user } = useAppSelector((s) => s.auth)
+
+  const userInitials = user?.name
+    ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : "U"
+
+  async function handleLogout() {
+    await dispatch(logout())
+    navigate("/login")
+  }
 
   // Close mobile sidebar on resize
   useEffect(() => {
@@ -142,7 +167,36 @@ export function AppLayout() {
           </ScrollArea>
 
           <Separator />
-          <div className="flex items-center justify-end p-2">
+          <div className="flex items-center justify-between p-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="User menu">
+                  <Avatar className="h-7 w-7">
+                    <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel>
+                  <p className="text-sm font-medium">{user?.name || "User"}</p>
+                  <p className="text-xs text-muted-foreground font-normal">{user?.email || ""}</p>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <User className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <ThemeToggle />
           </div>
         </aside>
@@ -174,13 +228,38 @@ export function AppLayout() {
                 <div className="px-2 py-2">
                   <NavLinks onNavigate={() => setMobileOpen(false)} />
                 </div>
-                <div className="absolute bottom-4 right-4">
+                <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                  <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Log out">
+                    <LogOut className="h-4 w-4" />
+                  </Button>
                   <ThemeToggle />
                 </div>
               </SheetContent>
             </Sheet>
             <Link to="/" className="text-lg font-semibold tracking-tight hover:opacity-80 transition-opacity">Neuron</Link>
-            <ThemeToggle />
+            <div className="flex items-center gap-1">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="User menu">
+                    <Avatar className="h-7 w-7">
+                      <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <p className="text-sm font-medium">{user?.name || "User"}</p>
+                    <p className="text-xs text-muted-foreground font-normal">{user?.email || ""}</p>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <ThemeToggle />
+            </div>
           </header>
 
           <main className="flex-1 overflow-auto" role="main" id="main-content">
