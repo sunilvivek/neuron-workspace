@@ -1,98 +1,109 @@
-import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react"
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react"
 import type { Note } from "@/types/note"
-import type { DashboardStats } from "@/types/dashboard"
-
-let notesDb: Note[] = [
-  { id: "1", title: "Getting Started", content: "Welcome to Neuron Workspace!", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: "2", title: "Ideas", content: "Brainstorm features for the next sprint.", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-]
-
-const statsDb: DashboardStats = {
-  totalNotes: 2,
-  totalWords: 18,
-  weeklyActivity: [
-    { day: "Mon", notes: 2 },
-    { day: "Tue", notes: 5 },
-    { day: "Wed", notes: 3 },
-    { day: "Thu", notes: 7 },
-    { day: "Fri", notes: 4 },
-    { day: "Sat", notes: 1 },
-    { day: "Sun", notes: 0 },
-  ],
-}
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
+import type { DashboardStats, QuickAction } from "@/types/dashboard"
+import type { Task } from "@/types/task"
+import type { Notification } from "@/types/notification"
+import type { TeamMember } from "@/types/team"
+import type { ActivityItem } from "@/types/activity"
+import type { CalendarEvent } from "@/types/calendar"
+import type { StorageInfo } from "@/types/storage"
 
 export const api = createApi({
   reducerPath: "api",
-  baseQuery: fakeBaseQuery(),
-  tagTypes: ["Notes", "Stats"],
+  baseQuery: fetchBaseQuery({ baseUrl: "/api" }),
+  tagTypes: ["Notes", "Stats", "Tasks", "Notifications", "Activity", "Calendar", "Storage", "Team"],
   endpoints: (builder) => ({
     getNotes: builder.query<Note[], void>({
-      queryFn: async () => {
-        await delay(300)
-        return { data: [...notesDb] }
-      },
+      query: () => "/notes",
       providesTags: ["Notes"],
     }),
     getNoteById: builder.query<Note, string>({
-      queryFn: async (id) => {
-        await delay(200)
-        const note = notesDb.find((n) => n.id === id)
-        if (!note) return { error: new Error("Note not found") }
-        return { data: note }
-      },
+      query: (id) => `/notes/${id}`,
       providesTags: (_result, _err, id) => [{ type: "Notes", id }],
     }),
     createNote: builder.mutation<Note, { title: string; content: string }>({
-      queryFn: async (data) => {
-        await delay(300)
-        const newNote: Note = {
-          id: String(Date.now()),
-          title: data.title,
-          content: data.content,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-        notesDb = [newNote, ...notesDb]
-        statsDb.totalNotes = notesDb.length
-        return { data: newNote }
-      },
+      query: (data) => ({
+        url: "/notes",
+        method: "POST",
+        body: data,
+      }),
       invalidatesTags: ["Notes", "Stats"],
     }),
     updateNote: builder.mutation<Note, { id: string; title: string; content: string }>({
-      queryFn: async ({ id, ...data }) => {
-        await delay(300)
-        const idx = notesDb.findIndex((n) => n.id === id)
-        if (idx === -1) return { error: new Error("Note not found") }
-        const updated: Note = {
-          ...notesDb[idx],
-          ...data,
-          updatedAt: new Date().toISOString(),
-        }
-        notesDb[idx] = updated
-        return { data: updated }
-      },
+      query: ({ id, ...data }) => ({
+        url: `/notes/${id}`,
+        method: "PUT",
+        body: data,
+      }),
       invalidatesTags: (_result, _err, { id }) => [{ type: "Notes", id }],
     }),
     deleteNote: builder.mutation<void, string>({
-      queryFn: async (id) => {
-        await delay(200)
-        notesDb = notesDb.filter((n) => n.id !== id)
-        statsDb.totalNotes = notesDb.length
-        return { data: undefined }
-      },
+      query: (id) => ({
+        url: `/notes/${id}`,
+        method: "DELETE",
+      }),
       invalidatesTags: ["Notes", "Stats"],
     }),
     getDashboardStats: builder.query<DashboardStats, void>({
-      queryFn: async () => {
-        await delay(400)
-        statsDb.totalNotes = notesDb.length
-        return { data: { ...statsDb } }
-      },
+      query: () => "/dashboard/stats",
       providesTags: ["Stats"],
+    }),
+    getWelcome: builder.query<{
+      name: string
+      greeting: string
+      date: string
+      time: string
+      summary: { totalNotes: number; activeProjects: number; tasksToday: number; unreadNotifications: number }
+    }, void>({
+      query: () => "/dashboard/welcome",
+    }),
+    getQuickActions: builder.query<QuickAction[], void>({
+      query: () => "/dashboard/quick-actions",
+    }),
+    getActivity: builder.query<ActivityItem[], void>({
+      query: () => "/dashboard/activity",
+      providesTags: ["Activity"],
+    }),
+    getTasks: builder.query<Task[], void>({
+      query: () => "/dashboard/tasks",
+      providesTags: ["Tasks"],
+    }),
+    toggleTask: builder.mutation<Task, string>({
+      query: (id) => ({
+        url: `/dashboard/tasks/${id}/read`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Tasks"],
+    }),
+    getNotifications: builder.query<Notification[], void>({
+      query: () => "/dashboard/notifications",
+      providesTags: ["Notifications"],
+    }),
+    markNotificationRead: builder.mutation<Notification, string>({
+      query: (id) => ({
+        url: `/dashboard/notifications/${id}/read`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Notifications"],
+    }),
+    markAllNotificationsRead: builder.mutation<{ success: boolean }, void>({
+      query: () => ({
+        url: "/dashboard/notifications/read-all",
+        method: "POST",
+      }),
+      invalidatesTags: ["Notifications"],
+    }),
+    getCalendar: builder.query<CalendarEvent[], void>({
+      query: () => "/dashboard/calendar",
+      providesTags: ["Calendar"],
+    }),
+    getStorage: builder.query<StorageInfo, void>({
+      query: () => "/dashboard/storage",
+      providesTags: ["Storage"],
+    }),
+    getTeam: builder.query<TeamMember[], void>({
+      query: () => "/dashboard/team",
+      providesTags: ["Team"],
     }),
   }),
 })
@@ -104,4 +115,15 @@ export const {
   useUpdateNoteMutation,
   useDeleteNoteMutation,
   useGetDashboardStatsQuery,
+  useGetWelcomeQuery,
+  useGetQuickActionsQuery,
+  useGetActivityQuery,
+  useGetTasksQuery,
+  useToggleTaskMutation,
+  useGetNotificationsQuery,
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
+  useGetCalendarQuery,
+  useGetStorageQuery,
+  useGetTeamQuery,
 } = api
