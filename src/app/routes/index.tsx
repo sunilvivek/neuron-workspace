@@ -28,6 +28,10 @@ const EmailVerificationPage = lazy(() => import("@/features/auth/pages/email-ver
 const DashboardPage = lazy(() => import("@/features/dashboard/pages/dashboard-page"))
 const NotesPage = lazy(() => import("@/features/notes/pages/notes-page"))
 const SettingsPage = lazy(() => import("@/features/settings/pages/settings-page"))
+const DocumentsPage = lazy(() => import("@/features/documents/pages/documents-page"))
+const TemplateGalleryPage = lazy(() => import("@/features/documents/pages/template-gallery-page"))
+const SearchResultsPage = lazy(() => import("@/features/documents/pages/search-results-page"))
+const FilesPage = lazy(() => import("@/features/documents/pages/files-page"))
 
 export const router = createBrowserRouter([
   {
@@ -153,6 +157,54 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <NotesPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "documents",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <DocumentsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "documents/folder/:folderId",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <DocumentsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "documents/templates",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <TemplateGalleryPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "documents/search",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <SearchResultsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "files",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <FilesPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "files/folder/:folderId",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <FilesPage />
           </Suspense>
         ),
       },

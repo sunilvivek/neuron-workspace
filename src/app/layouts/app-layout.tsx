@@ -2,6 +2,8 @@ import { Outlet, NavLink, Link, useNavigate } from "react-router"
 import {
   LayoutDashboard,
   FileText,
+  FolderOpen,
+  Files,
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
@@ -37,7 +39,9 @@ import { logout } from "@/features/auth/store/auth-slice"
 
 const navItems = [
   { to: "/app", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/app/notes", icon: FileText, label: "Notes" },
+  { to: "/app/documents", icon: FileText, label: "Documents" },
+  { to: "/app/notes", icon: Files, label: "Notes" },
+  { to: "/app/files", icon: FolderOpen, label: "Files" },
   { to: "/app/settings", icon: Settings, label: "Settings" },
 ]
 
