@@ -10,13 +10,14 @@ import type { StorageInfo } from "@/types/storage"
 import type { Document, DocumentFilter, DocumentSortField, DocumentSortDirection } from "@/types/document"
 import type { Folder, FileAttachment, FolderTreeNode } from "@/types/folder"
 import type { Template } from "@/types/template"
+import type { Conversation, Message, CreateConversationRequest } from "@/types/ai"
 
 export const api = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({ baseUrl: "/api" }),
   tagTypes: [
     "Notes", "Stats", "Tasks", "Notifications", "Activity", "Calendar", "Storage", "Team",
-    "Documents", "Folders", "Files", "Templates",
+    "Documents", "Folders", "Files", "Templates", "AI",
   ],
   endpoints: (builder) => ({
     // Notes
@@ -214,6 +215,32 @@ export const api = createApi({
       providesTags: ["Templates"],
     }),
 
+    // AI
+    getConversations: builder.query<Conversation[], void>({
+      query: () => "/ai/conversations",
+      providesTags: ["AI"],
+    }),
+    getConversationMessages: builder.query<Message[], string>({
+      query: (conversationId) => `/ai/conversations/${conversationId}/messages`,
+      providesTags: (_result, _err, id) => [{ type: "AI", id }],
+    }),
+    createConversation: builder.mutation<Conversation, CreateConversationRequest>({
+      query: (data) => ({ url: "/ai/conversations", method: "POST", body: data }),
+      invalidatesTags: ["AI"],
+    }),
+    sendMessage: builder.mutation<{ userMessage: Message; aiMessage: Message }, { conversationId: string; content: string }>({
+      query: ({ conversationId, ...data }) => ({
+        url: `/ai/conversations/${conversationId}/messages`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: (_result, _err, { conversationId }) => [{ type: "AI", id: conversationId }, "AI"],
+    }),
+    deleteConversation: builder.mutation<void, string>({
+      query: (id) => ({ url: `/ai/conversations/${id}`, method: "DELETE" }),
+      invalidatesTags: ["AI"],
+    }),
+
     // Search
     search: builder.query<{ documents: Document[]; files: FileAttachment[] }, { q: string; type?: string }>({
       query: (params) => {
@@ -246,6 +273,9 @@ export const {
   useDeleteFileMutation, useMoveFileMutation,
   // Templates
   useGetTemplatesQuery,
+  // AI
+  useGetConversationsQuery, useGetConversationMessagesQuery, useCreateConversationMutation,
+  useSendMessageMutation, useDeleteConversationMutation,
   // Search
   useSearchQuery,
 } = api

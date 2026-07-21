@@ -5,6 +5,7 @@ import {
   FolderOpen,
   Files,
   Settings,
+  Bot,
   PanelLeftClose,
   PanelLeftOpen,
   Menu,
@@ -39,6 +40,7 @@ import { logout } from "@/features/auth/store/auth-slice"
 
 const navItems = [
   { to: "/app", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/app/ai", icon: Bot, label: "AI Workspace" },
   { to: "/app/documents", icon: FileText, label: "Documents" },
   { to: "/app/notes", icon: Files, label: "Notes" },
   { to: "/app/files", icon: FolderOpen, label: "Files" },

@@ -32,6 +32,7 @@ const DocumentsPage = lazy(() => import("@/features/documents/pages/documents-pa
 const TemplateGalleryPage = lazy(() => import("@/features/documents/pages/template-gallery-page"))
 const SearchResultsPage = lazy(() => import("@/features/documents/pages/search-results-page"))
 const FilesPage = lazy(() => import("@/features/documents/pages/files-page"))
+const AIWorkspacePage = lazy(() => import("@/features/ai/pages/ai-workspace-page"))
 
 export const router = createBrowserRouter([
   {
@@ -205,6 +206,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <FilesPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "ai",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <AIWorkspacePage />
           </Suspense>
         ),
       },
