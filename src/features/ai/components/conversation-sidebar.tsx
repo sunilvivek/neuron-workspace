@@ -1,6 +1,6 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
-import { Plus, PanelLeftClose, MessageSquare } from "lucide-react"
+import { Plus, PanelLeftClose, MessageSquare, Pin } from "lucide-react"
 import { ConversationSearch } from "./conversation-search"
 import { ConversationItem } from "./conversation-item"
 import type { Conversation } from "@/types/ai"
@@ -12,6 +12,9 @@ interface ConversationSidebarProps {
   onSearch: (query: string) => void
   onSelect: (id: string) => void
   onNewChat: () => void
+  onRename: (id: string) => void
+  onTogglePin: (id: string) => void
+  onClear: (id: string) => void
   onDelete: (id: string) => void
   onClose?: () => void
 }
@@ -23,6 +26,9 @@ export function ConversationSidebar({
   onSearch,
   onSelect,
   onNewChat,
+  onRename,
+  onTogglePin,
+  onClear,
   onDelete,
   onClose,
 }: ConversationSidebarProps) {
@@ -32,6 +38,15 @@ export function ConversationSidebar({
         c.lastMessagePreview.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : conversations
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1
+    if (!a.pinned && b.pinned) return 1
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  })
+
+  const pinned = sorted.filter((c) => c.pinned)
+  const unpinned = sorted.filter((c) => !c.pinned)
 
   return (
     <div className="flex h-full flex-col">
@@ -54,9 +69,9 @@ export function ConversationSidebar({
 
       <ConversationSearch onSearch={onSearch} />
 
-      <ScrollArea className="flex-1 px-2 pb-2">
+      <ScrollArea className="flex-1 px-2 pb-2" role="list" aria-label="Conversation list">
         <div className="space-y-0.5">
-          {filtered.length === 0 ? (
+          {sorted.length === 0 ? (
             <div className="px-3 py-8 text-center">
               <p className="text-sm text-muted-foreground">
                 {searchQuery ? "No conversations found" : "No conversations yet"}
@@ -69,15 +84,54 @@ export function ConversationSidebar({
               )}
             </div>
           ) : (
-            filtered.map((conversation) => (
-              <ConversationItem
-                key={conversation.id}
-                conversation={conversation}
-                isActive={conversation.id === activeConversationId}
-                onClick={() => onSelect(conversation.id)}
-                onDelete={onDelete}
-              />
-            ))
+            <>
+              {pinned.length > 0 && (
+                <div className="pb-1">
+                  <div className="flex items-center gap-1 px-3 py-1.5" role="heading" aria-level={3}>
+                    <Pin className="h-3 w-3 text-muted-foreground/60" />
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                      Pinned ({pinned.length})
+                    </span>
+                  </div>
+                  {pinned.map((conversation) => (
+                    <ConversationItem
+                      key={conversation.id}
+                      conversation={conversation}
+                      isActive={conversation.id === activeConversationId}
+                      onClick={() => onSelect(conversation.id)}
+                      onRename={onRename}
+                      onTogglePin={onTogglePin}
+                      onClear={onClear}
+                      onDelete={onDelete}
+                    />
+                  ))}
+                </div>
+              )}
+              {unpinned.length > 0 && (
+                <div>
+                  {pinned.length > 0 && (
+                    <div className="flex items-center gap-1 px-3 py-1.5" role="heading" aria-level={3}>
+                      <MessageSquare className="h-3 w-3 text-muted-foreground/60" />
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                        Recent
+                      </span>
+                    </div>
+                  )}
+                  {unpinned.map((conversation) => (
+                    <ConversationItem
+                      key={conversation.id}
+                      conversation={conversation}
+                      isActive={conversation.id === activeConversationId}
+                      onClick={() => onSelect(conversation.id)}
+                      onRename={onRename}
+                      onTogglePin={onTogglePin}
+                      onClear={onClear}
+                      onDelete={onDelete}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </ScrollArea>

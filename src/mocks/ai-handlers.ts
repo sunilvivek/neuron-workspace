@@ -114,7 +114,7 @@ Based on the content provided, here's a comprehensive summary:
 
 ### Next Steps
 
-> *"The next meeting will focus on reviewing the prototype."
+> *"The next meeting will focus on reviewing the prototype."*
 
 I can generate a full meeting agenda or help you prepare for the follow-up session. Would you like me to do that?`
   }
@@ -162,6 +162,7 @@ let conversations: Conversation[] = [
     updatedAt: new Date(Date.now() - 3600000).toISOString(),
     messageCount: 6,
     lastMessagePreview: "That makes sense now, thanks for the detailed explanation!",
+    pinned: true,
   },
   {
     id: "conv-2",
@@ -170,6 +171,7 @@ let conversations: Conversation[] = [
     updatedAt: new Date(Date.now() - 86400000).toISOString(),
     messageCount: 4,
     lastMessagePreview: "Here's a summary of the key points from the meeting...",
+    pinned: false,
   },
   {
     id: "conv-3",
@@ -178,6 +180,7 @@ let conversations: Conversation[] = [
     updatedAt: new Date(Date.now() - 3 * 86400000).toISOString(),
     messageCount: 8,
     lastMessagePreview: "Let me outline a comprehensive project plan for you.",
+    pinned: false,
   },
 ]
 
@@ -279,10 +282,23 @@ export const aiHandlers = [
       updatedAt: new Date().toISOString(),
       messageCount: 0,
       lastMessagePreview: "",
+      pinned: false,
     }
     messages[newConversation.id] = []
     conversations = [newConversation, ...conversations]
     return HttpResponse.json(newConversation, { status: 201 })
+  }),
+
+  http.put("/api/ai/conversations/:conversationId", async ({ params, request }) => {
+    const body = (await request.json()) as { title?: string; pinned?: boolean }
+    const idx = conversations.findIndex((c) => c.id === params.conversationId)
+    if (idx === -1) return new HttpResponse(null, { status: 404 })
+    conversations[idx] = {
+      ...conversations[idx],
+      ...body,
+      updatedAt: new Date().toISOString(),
+    }
+    return HttpResponse.json(conversations[idx])
   }),
 
   http.post("/api/ai/conversations/:conversationId/messages", async ({ params, request }) => {
@@ -327,6 +343,23 @@ export const aiHandlers = [
     }
 
     return HttpResponse.json({ userMessage, aiMessage }, { status: 201 })
+  }),
+
+  http.post("/api/ai/conversations/:conversationId/clear", ({ params }) => {
+    const conversationId = params.conversationId as string
+    if (messages[conversationId]) {
+      messages[conversationId] = []
+    }
+    const idx = conversations.findIndex((c) => c.id === conversationId)
+    if (idx !== -1) {
+      conversations[idx] = {
+        ...conversations[idx],
+        messageCount: 0,
+        lastMessagePreview: "",
+        updatedAt: new Date().toISOString(),
+      }
+    }
+    return HttpResponse.json({ success: true })
   }),
 
   http.delete("/api/ai/conversations/:conversationId", ({ params }) => {

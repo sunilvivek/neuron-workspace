@@ -15,10 +15,17 @@ export interface Conversation {
   updatedAt: string
   messageCount: number
   lastMessagePreview: string
+  pinned: boolean
 }
 
 export interface CreateConversationRequest {
   title: string
+}
+
+export interface UpdateConversationRequest {
+  id: string
+  title?: string
+  pinned?: boolean
 }
 
 export interface SendMessageRequest {

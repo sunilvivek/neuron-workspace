@@ -10,7 +10,7 @@ import type { StorageInfo } from "@/types/storage"
 import type { Document, DocumentFilter, DocumentSortField, DocumentSortDirection } from "@/types/document"
 import type { Folder, FileAttachment, FolderTreeNode } from "@/types/folder"
 import type { Template } from "@/types/template"
-import type { Conversation, Message, CreateConversationRequest } from "@/types/ai"
+import type { Conversation, Message, CreateConversationRequest, UpdateConversationRequest } from "@/types/ai"
 
 export const api = createApi({
   reducerPath: "api",
@@ -240,6 +240,17 @@ export const api = createApi({
       query: (id) => ({ url: `/ai/conversations/${id}`, method: "DELETE" }),
       invalidatesTags: ["AI"],
     }),
+    updateConversation: builder.mutation<Conversation, UpdateConversationRequest>({
+      query: ({ id, ...data }) => ({ url: `/ai/conversations/${id}`, method: "PUT", body: data }),
+      invalidatesTags: (_result, _err, { id }) => [{ type: "AI", id }, "AI"],
+    }),
+    clearConversation: builder.mutation<{ success: boolean }, string>({
+      query: (conversationId) => ({
+        url: `/ai/conversations/${conversationId}/clear`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _err, id) => [{ type: "AI", id }, "AI"],
+    }),
 
     // Search
     search: builder.query<{ documents: Document[]; files: FileAttachment[] }, { q: string; type?: string }>({
@@ -275,7 +286,8 @@ export const {
   useGetTemplatesQuery,
   // AI
   useGetConversationsQuery, useGetConversationMessagesQuery, useCreateConversationMutation,
-  useSendMessageMutation, useDeleteConversationMutation,
+  useSendMessageMutation, useDeleteConversationMutation, useUpdateConversationMutation,
+  useClearConversationMutation,
   // Search
   useSearchQuery,
 } = api

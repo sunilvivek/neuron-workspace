@@ -1,16 +1,30 @@
 import { cn } from "@/lib/utils"
-import { MessageSquare, Trash2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Pin } from "lucide-react"
+import { ConversationActions } from "./conversation-actions"
 import type { Conversation } from "@/types/ai"
+import { format } from "@/lib/date-utils"
 
 interface ConversationItemProps {
   conversation: Conversation
   isActive: boolean
   onClick: () => void
+  onRename: (id: string) => void
+  onTogglePin: (id: string) => void
+  onClear: (id: string) => void
   onDelete: (id: string) => void
 }
 
-export function ConversationItem({ conversation, isActive, onClick, onDelete }: ConversationItemProps) {
+export function ConversationItem({
+  conversation,
+  isActive,
+  onClick,
+  onRename,
+  onTogglePin,
+  onClear,
+  onDelete,
+}: ConversationItemProps) {
+  const timeAgo = format(conversation.updatedAt)
+
   return (
     <button
       onClick={onClick}
@@ -20,28 +34,33 @@ export function ConversationItem({ conversation, isActive, onClick, onDelete }: 
           ? "bg-accent text-accent-foreground"
           : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
       )}
+      aria-current={isActive ? "true" : undefined}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-1">
         <div className="flex items-center gap-2 min-w-0">
-          <MessageSquare className="h-4 w-4 shrink-0" />
-          <span className="truncate text-sm font-medium">{conversation.title}</span>
+          {conversation.pinned && (
+            <Pin className="h-3 w-3 shrink-0 fill-primary/30 text-primary/60" aria-label="Pinned" />
+          )}
+          <span className="truncate text-sm font-medium">
+            {conversation.pinned && !isActive ? "— " : ""}{conversation.title}
+          </span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => { e.stopPropagation(); onDelete(conversation.id) }}
-          aria-label={`Delete ${conversation.title}`}
-        >
-          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-        </Button>
+        <ConversationActions
+          isPinned={conversation.pinned}
+          onRename={() => onRename(conversation.id)}
+          onTogglePin={() => onTogglePin(conversation.id)}
+          onClear={() => onClear(conversation.id)}
+          onDelete={() => onDelete(conversation.id)}
+        />
       </div>
       {conversation.lastMessagePreview && (
-        <p className="truncate text-xs text-muted-foreground pl-6">{conversation.lastMessagePreview}</p>
+        <p className="truncate text-xs text-muted-foreground pl-5">{conversation.lastMessagePreview}</p>
       )}
-      <p className="pl-6 text-[10px] text-muted-foreground/60">
-        {conversation.messageCount} messages
-      </p>
+      <div className="flex items-center gap-2 pl-5">
+        <p className="text-[10px] text-muted-foreground/60">{timeAgo}</p>
+        <span className="text-[10px] text-muted-foreground/40">&middot;</span>
+        <p className="text-[10px] text-muted-foreground/60">{conversation.messageCount} messages</p>
+      </div>
     </button>
   )
 }
