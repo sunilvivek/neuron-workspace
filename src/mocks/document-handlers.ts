@@ -2,6 +2,7 @@ import { http, HttpResponse, delay } from "msw"
 import type { Document, PaginatedResult } from "@/types/document"
 import type { Folder, FileAttachment } from "@/types/folder"
 import type { Template } from "@/types/template"
+import type { StorageInfo, StorageBreakdown } from "@/types/storage"
 
 let folders: Folder[] = [
   { id: "f1", name: "Work Projects", parentId: null, createdAt: new Date(Date.now() - 14 * 86400000).toISOString() },
@@ -29,12 +30,16 @@ let documents: Document[] = [
 ]
 
 let files: FileAttachment[] = [
-  { id: "fl1", name: "design-spec.pdf", type: "pdf", size: 2457600, folderId: "f2", uploadedAt: new Date(Date.now() - 5 * 86400000).toISOString() },
-  { id: "fl2", name: "architecture-diagram.png", type: "image", size: 1048576, folderId: "f3", uploadedAt: new Date(Date.now() - 4 * 86400000).toISOString() },
-  { id: "fl3", name: "meeting-recording.mp3", type: "audio", size: 15728640, folderId: "f1", uploadedAt: new Date(Date.now() - 3 * 86400000).toISOString() },
-  { id: "fl4", name: "budget-2025.xlsx", type: "spreadsheet", size: 524288, folderId: null, uploadedAt: new Date(Date.now() - 2 * 86400000).toISOString() },
-  { id: "fl5", name: "brand-assets.zip", type: "archive", size: 10485760, folderId: "f2", uploadedAt: new Date(Date.now() - 86400000).toISOString() },
-  { id: "fl6", name: "api-collection.json", type: "code", size: 81920, folderId: "f3", uploadedAt: new Date(Date.now() - 86400000).toISOString() },
+  { id: "fl1", name: "design-spec.pdf", type: "pdf", size: 2457600, folderId: "f2", uploadedAt: new Date(Date.now() - 5 * 86400000).toISOString(), favorite: true, trashed: false },
+  { id: "fl2", name: "architecture-diagram.png", type: "image", size: 1048576, folderId: "f3", uploadedAt: new Date(Date.now() - 4 * 86400000).toISOString(), favorite: false, trashed: false },
+  { id: "fl3", name: "meeting-recording.mp3", type: "audio", size: 15728640, folderId: "f1", uploadedAt: new Date(Date.now() - 3 * 86400000).toISOString(), favorite: false, trashed: false },
+  { id: "fl4", name: "budget-2025.xlsx", type: "spreadsheet", size: 524288, folderId: null, uploadedAt: new Date(Date.now() - 2 * 86400000).toISOString(), favorite: false, trashed: false },
+  { id: "fl5", name: "brand-assets.zip", type: "archive", size: 10485760, folderId: "f2", uploadedAt: new Date(Date.now() - 86400000).toISOString(), favorite: false, trashed: false },
+  { id: "fl6", name: "api-collection.json", type: "code", size: 81920, folderId: "f3", uploadedAt: new Date(Date.now() - 86400000).toISOString(), favorite: true, trashed: false },
+  { id: "fl7", name: "readme.md", type: "markdown", size: 4096, folderId: null, uploadedAt: new Date(Date.now() - 6 * 86400000).toISOString(), favorite: false, trashed: true },
+  { id: "fl8", name: "notes.txt", type: "text", size: 2048, folderId: null, uploadedAt: new Date(Date.now() - 7 * 86400000).toISOString(), favorite: false, trashed: false },
+  { id: "fl9", name: "presentation.pptx", type: "other", size: 5242880, folderId: "f1", uploadedAt: new Date(Date.now() - 86400000).toISOString(), favorite: false, trashed: false },
+  { id: "fl10", name: "demo-video.mp4", type: "video", size: 52428800, folderId: null, uploadedAt: new Date(Date.now() - 3 * 86400000).toISOString(), favorite: true, trashed: false },
 ]
 
 const templates: Template[] = [
@@ -114,6 +119,66 @@ function filterDocuments(params: {
   })
 
   return filtered
+}
+
+function filterFiles(params: {
+  folderId?: string | null
+  search?: string | null
+  filter?: string
+  type?: string | null
+  dateFrom?: string | null
+  dateTo?: string | null
+  sortField?: string
+  sortDirection?: string
+}): FileAttachment[] {
+  const { folderId, search, filter = "all", type, dateFrom, dateTo, sortField = "uploadedAt", sortDirection = "desc" } = params
+
+  let filtered = [...files]
+
+  if (filter === "favorites") filtered = filtered.filter((f) => f.favorite && !f.trashed)
+  else if (filter === "trash") filtered = filtered.filter((f) => f.trashed)
+  else if (filter === "recent") filtered = filtered.filter((f) => !f.trashed)
+  else filtered = filtered.filter((f) => !f.trashed)
+
+  if (folderId) filtered = filtered.filter((f) => f.folderId === folderId)
+  else if (filter === "all" && !folderId) filtered = filtered.filter((f) => !f.folderId || f.folderId === null)
+
+  if (search) filtered = filtered.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()))
+  if (type) filtered = filtered.filter((f) => f.type === type)
+  if (dateFrom) filtered = filtered.filter((f) => f.uploadedAt >= dateFrom!)
+  if (dateTo) filtered = filtered.filter((f) => f.uploadedAt <= dateTo!)
+
+  filtered.sort((a, b) => {
+    const aVal = a[sortField as keyof FileAttachment] as string | number
+    const bVal = b[sortField as keyof FileAttachment] as string | number
+    if (typeof aVal === "number" && typeof bVal === "number") {
+      return sortDirection === "asc" ? aVal - bVal : bVal - aVal
+    }
+    return sortDirection === "asc"
+      ? String(aVal).localeCompare(String(bVal))
+      : String(bVal).localeCompare(String(aVal))
+  })
+
+  return filtered
+}
+
+function getStorageInfo() {
+  const activeFiles = files.filter((f) => !f.trashed)
+  const used = activeFiles.reduce((sum, f) => sum + f.size, 0)
+  const total = 10737418240
+  const typeMap = new Map<string, { size: number; count: number }>()
+  for (const f of activeFiles) {
+    const existing = typeMap.get(f.type) || { size: 0, count: 0 }
+    existing.size += f.size
+    existing.count += 1
+    typeMap.set(f.type, existing)
+  }
+  const breakdown = Array.from(typeMap.entries()).map(([type, data]) => ({
+    type,
+    size: data.size,
+    count: data.count,
+  }))
+  return { used, total, breakdown }
 }
 
 export const documentHandlers = [
@@ -336,8 +401,15 @@ export const documentHandlers = [
   http.get("/api/files", ({ request }) => {
     const url = new URL(request.url)
     const folderId = url.searchParams.get("folderId")
-    let filtered = [...files]
-    if (folderId) filtered = filtered.filter((f) => f.folderId === folderId)
+    const search = url.searchParams.get("search")
+    const filter = url.searchParams.get("filter") || "all"
+    const type = url.searchParams.get("type")
+    const sortField = url.searchParams.get("sortField") || "uploadedAt"
+    const sortDirection = url.searchParams.get("sortDirection") || "desc"
+    const dateFrom = url.searchParams.get("dateFrom")
+    const dateTo = url.searchParams.get("dateTo")
+
+    const filtered = filterFiles({ folderId, search, filter, type, dateFrom, dateTo, sortField, sortDirection })
     return HttpResponse.json(filtered)
   }),
 
@@ -347,10 +419,12 @@ export const documentHandlers = [
     const newFile: FileAttachment = {
       id: `fl${Date.now()}`,
       name: body.name,
-      type: body.type,
+      type: (body.type as FileAttachment["type"]) || "other",
       size: body.size,
       folderId: body.folderId || null,
       uploadedAt: new Date().toISOString(),
+      favorite: false,
+      trashed: false,
     }
     files = [newFile, ...files]
     return HttpResponse.json(newFile, { status: 201 })
@@ -376,6 +450,41 @@ export const documentHandlers = [
     if (!file) return HttpResponse.json({ message: "Not found" }, { status: 404 })
     file.folderId = body.folderId
     return HttpResponse.json(file)
+  }),
+
+  http.post("/api/files/:id/favorite", ({ params }) => {
+    const file = files.find((f) => f.id === params.id)
+    if (!file) return HttpResponse.json({ message: "Not found" }, { status: 404 })
+    file.favorite = !file.favorite
+    return HttpResponse.json(file)
+  }),
+
+  http.post("/api/files/:id/trash", ({ params }) => {
+    const file = files.find((f) => f.id === params.id)
+    if (!file) return HttpResponse.json({ message: "Not found" }, { status: 404 })
+    file.trashed = !file.trashed
+    return HttpResponse.json(file)
+  }),
+
+  http.post("/api/files/:id/restore", ({ params }) => {
+    const file = files.find((f) => f.id === params.id)
+    if (!file) return HttpResponse.json({ message: "Not found" }, { status: 404 })
+    file.trashed = false
+    return HttpResponse.json(file)
+  }),
+
+  // Storage Dashboard
+  http.get("/api/storage/dashboard", () => {
+    const info = getStorageInfo()
+    const recentUploads = [...files]
+      .filter((f) => !f.trashed)
+      .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
+      .slice(0, 5)
+    const largestFiles = [...files]
+      .filter((f) => !f.trashed)
+      .sort((a, b) => b.size - a.size)
+      .slice(0, 5)
+    return HttpResponse.json({ info, recentUploads, largestFiles })
   }),
 
   // Templates

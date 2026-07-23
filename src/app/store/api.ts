@@ -8,7 +8,7 @@ import type { ActivityItem } from "@/types/activity"
 import type { CalendarEvent } from "@/types/calendar"
 import type { StorageInfo } from "@/types/storage"
 import type { Document, DocumentFilter, DocumentSortField, DocumentSortDirection, PaginatedResult, DocumentType } from "@/types/document"
-import type { Folder, FileAttachment, FolderTreeNode } from "@/types/folder"
+import type { Folder, FileAttachment, FolderTreeNode, FileSearchParams, FileType, FileFilter, FileSortField, FileSortDirection, StorageDashboardData } from "@/types/folder"
 import type { Template } from "@/types/template"
 import type { Conversation, Message, CreateConversationRequest, UpdateConversationRequest } from "@/types/ai"
 
@@ -204,10 +204,17 @@ export const api = createApi({
     }),
 
     // Files
-    getFiles: builder.query<FileAttachment[], { folderId?: string | null }>({
+    getFiles: builder.query<FileAttachment[], FileSearchParams>({
       query: (params) => {
         const searchParams = new URLSearchParams()
         if (params.folderId) searchParams.set("folderId", params.folderId)
+        if (params.search) searchParams.set("search", params.search)
+        if (params.filter && params.filter !== "all") searchParams.set("filter", params.filter)
+        if (params.type) searchParams.set("type", params.type)
+        if (params.sortField) searchParams.set("sortField", params.sortField)
+        if (params.sortDirection) searchParams.set("sortDirection", params.sortDirection)
+        if (params.dateFrom) searchParams.set("dateFrom", params.dateFrom)
+        if (params.dateTo) searchParams.set("dateTo", params.dateTo)
         const qs = searchParams.toString()
         return `/files${qs ? `?${qs}` : ""}`
       },
@@ -228,6 +235,24 @@ export const api = createApi({
     moveFile: builder.mutation<FileAttachment, { id: string; folderId: string | null }>({
       query: ({ id, folderId }) => ({ url: `/files/${id}/move`, method: "POST", body: { folderId } }),
       invalidatesTags: ["Files", "Folders"],
+    }),
+    toggleFileFavorite: builder.mutation<FileAttachment, string>({
+      query: (id) => ({ url: `/files/${id}/favorite`, method: "POST" }),
+      invalidatesTags: ["Files"],
+    }),
+    toggleFileTrash: builder.mutation<FileAttachment, string>({
+      query: (id) => ({ url: `/files/${id}/trash`, method: "POST" }),
+      invalidatesTags: ["Files", "Storage"],
+    }),
+    restoreFile: builder.mutation<FileAttachment, string>({
+      query: (id) => ({ url: `/files/${id}/restore`, method: "POST" }),
+      invalidatesTags: ["Files", "Storage"],
+    }),
+
+    // Storage Dashboard
+    getStorageDashboard: builder.query<StorageDashboardData, void>({
+      query: () => "/storage/dashboard",
+      providesTags: ["Storage", "Files"],
     }),
 
     // Templates
