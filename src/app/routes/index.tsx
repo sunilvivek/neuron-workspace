@@ -29,6 +29,7 @@ const DashboardPage = lazy(() => import("@/features/dashboard/pages/dashboard-pa
 const NotesPage = lazy(() => import("@/features/notes/pages/notes-page"))
 const SettingsPage = lazy(() => import("@/features/settings/pages/settings-page"))
 const DocumentsPage = lazy(() => import("@/features/documents/pages/documents-page"))
+const DocumentEditorPage = lazy(() => import("@/features/documents/pages/document-editor-page"))
 const TemplateGalleryPage = lazy(() => import("@/features/documents/pages/template-gallery-page"))
 const SearchResultsPage = lazy(() => import("@/features/documents/pages/search-results-page"))
 const FilesPage = lazy(() => import("@/features/documents/pages/files-page"))
@@ -174,6 +175,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <DocumentsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "documents/:documentId",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <DocumentEditorPage />
           </Suspense>
         ),
       },

@@ -7,7 +7,7 @@ import type { TeamMember } from "@/types/team"
 import type { ActivityItem } from "@/types/activity"
 import type { CalendarEvent } from "@/types/calendar"
 import type { StorageInfo } from "@/types/storage"
-import type { Document, DocumentFilter, DocumentSortField, DocumentSortDirection } from "@/types/document"
+import type { Document, DocumentFilter, DocumentSortField, DocumentSortDirection, PaginatedResult, DocumentType } from "@/types/document"
 import type { Folder, FileAttachment, FolderTreeNode } from "@/types/folder"
 import type { Template } from "@/types/template"
 import type { Conversation, Message, CreateConversationRequest, UpdateConversationRequest } from "@/types/ai"
@@ -94,9 +94,11 @@ export const api = createApi({
     }),
 
     // Documents
-    getDocuments: builder.query<Document[], {
+    getDocuments: builder.query<PaginatedResult<Document>, {
       folderId?: string | null; search?: string; filter?: DocumentFilter
       sortField?: DocumentSortField; sortDirection?: DocumentSortDirection
+      type?: DocumentType | null; tag?: string | null
+      page?: number; pageSize?: number
     }>({
       query: (params) => {
         const searchParams = new URLSearchParams()
@@ -105,6 +107,10 @@ export const api = createApi({
         if (params.filter && params.filter !== "all") searchParams.set("filter", params.filter)
         if (params.sortField) searchParams.set("sortField", params.sortField)
         if (params.sortDirection) searchParams.set("sortDirection", params.sortDirection)
+        if (params.type) searchParams.set("type", params.type)
+        if (params.tag) searchParams.set("tag", params.tag)
+        if (params.page && params.page > 1) searchParams.set("page", String(params.page))
+        if (params.pageSize) searchParams.set("pageSize", String(params.pageSize))
         const qs = searchParams.toString()
         return `/documents${qs ? `?${qs}` : ""}`
       },
@@ -114,12 +120,20 @@ export const api = createApi({
       query: () => "/documents/recent",
       providesTags: ["Documents"],
     }),
+    getDocumentActivity: builder.query<Document[], void>({
+      query: () => "/documents/activity",
+      providesTags: ["Documents"],
+    }),
     getDocumentById: builder.query<Document, string>({
       query: (id) => `/documents/${id}`,
       providesTags: (_result, _err, id) => [{ type: "Documents", id }],
     }),
     createDocument: builder.mutation<Document, { title: string; content: string; folderId?: string | null; templateId?: string }>({
       query: (data) => ({ url: "/documents", method: "POST", body: data }),
+      invalidatesTags: ["Documents", "Stats"],
+    }),
+    duplicateDocument: builder.mutation<Document, string>({
+      query: (id) => ({ url: `/documents/${id}/duplicate`, method: "POST" }),
       invalidatesTags: ["Documents", "Stats"],
     }),
     updateDocument: builder.mutation<Document, { id: string } & Partial<Document>>({
@@ -132,6 +146,10 @@ export const api = createApi({
     }),
     toggleFavorite: builder.mutation<Document, string>({
       query: (id) => ({ url: `/documents/${id}/favorite`, method: "POST" }),
+      invalidatesTags: ["Documents"],
+    }),
+    togglePin: builder.mutation<Document, string>({
+      query: (id) => ({ url: `/documents/${id}/pin`, method: "POST" }),
       invalidatesTags: ["Documents"],
     }),
     toggleArchive: builder.mutation<Document, string>({
@@ -149,6 +167,9 @@ export const api = createApi({
     moveDocument: builder.mutation<Document, { id: string; folderId: string | null }>({
       query: ({ id, folderId }) => ({ url: `/documents/${id}/move`, method: "POST", body: { folderId } }),
       invalidatesTags: ["Documents", "Folders"],
+    }),
+    getDocumentTags: builder.query<string[], void>({
+      query: () => "/documents/tags",
     }),
 
     // Folders
@@ -273,9 +294,9 @@ export const {
   useGetCalendarQuery, useGetStorageQuery, useGetTeamQuery,
   // Documents
   useGetDocumentsQuery, useGetRecentDocumentsQuery, useGetDocumentByIdQuery,
-  useCreateDocumentMutation, useUpdateDocumentMutation, useDeleteDocumentMutation,
-  useToggleFavoriteMutation, useToggleArchiveMutation, useToggleTrashMutation,
-  useRestoreDocumentMutation, useMoveDocumentMutation,
+  useCreateDocumentMutation, useDuplicateDocumentMutation, useUpdateDocumentMutation, useDeleteDocumentMutation,
+  useToggleFavoriteMutation, useTogglePinMutation, useToggleArchiveMutation, useToggleTrashMutation,
+  useRestoreDocumentMutation, useMoveDocumentMutation, useGetDocumentActivityQuery, useGetDocumentTagsQuery,
   // Folders
   useGetFoldersQuery, useGetFolderTreeQuery, useGetFolderPathQuery,
   useCreateFolderMutation, useUpdateFolderMutation, useDeleteFolderMutation,

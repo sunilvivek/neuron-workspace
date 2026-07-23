@@ -18,6 +18,8 @@ interface DocumentCardProps {
   onArchive: (id: string) => void
   onTrash: (id: string) => void
   onMove: (doc: Document) => void
+  onDuplicate?: (id: string) => void
+  onPin?: (id: string) => void
 }
 
 function stripHtml(html: string): string {
@@ -35,7 +37,7 @@ function formatDate(iso: string): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
 
-export function DocumentCard({ document, onEdit, onFavorite, onArchive, onTrash, onMove }: DocumentCardProps) {
+export function DocumentCard({ document, onEdit, onFavorite, onArchive, onTrash, onMove, onDuplicate, onPin }: DocumentCardProps) {
   const preview = stripHtml(document.content)
 
   return (
@@ -73,8 +75,18 @@ export function DocumentCard({ document, onEdit, onFavorite, onArchive, onTrash,
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMove(document) }}>
                 <FolderInput className="mr-2 h-4 w-4" /> Move
               </DropdownMenuItem>
+              {onDuplicate && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicate(document.id) }}>
+                  <Copy className="mr-2 h-4 w-4" /> Duplicate
+                </DropdownMenuItem>
+              )}
+              {onPin && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPin(document.id) }}>
+                  <Copy className="mr-2 h-4 w-4" /> {document.pinned ? "Unpin" : "Pin"}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFavorite(document.id) }}>
-                <Copy className="mr-2 h-4 w-4" /> {document.favorite ? "Unfavorite" : "Favorite"}
+                <Star className="mr-2 h-4 w-4" /> {document.favorite ? "Unfavorite" : "Favorite"}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onArchive(document.id) }}>
