@@ -327,7 +327,10 @@ export const {
   useCreateFolderMutation, useUpdateFolderMutation, useDeleteFolderMutation,
   // Files
   useGetFilesQuery, useUploadFileMutation, useRenameFileMutation,
-  useDeleteFileMutation, useMoveFileMutation,
+  useDeleteFileMutation, useMoveFileMutation, useToggleFileFavoriteMutation,
+  useToggleFileTrashMutation, useRestoreFileMutation,
+  // Storage
+  useGetStorageDashboardQuery,
   // Templates
   useGetTemplatesQuery,
   // AI
